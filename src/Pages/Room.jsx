@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { COLLECTION_ID, DATABASE_ID, databases } from "../appwriteConfig";
+import client, {
+  COLLECTION_ID,
+  DATABASE_ID,
+  databases,
+} from "../appwriteConfig";
 import { ID, Query } from "appwrite";
 import { Trash2 } from "react-feather";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Header } from "../Components";
 
 const Room = () => {
   const [messages, setMessages] = useState([]);
@@ -30,7 +37,7 @@ const Room = () => {
       payload
     );
 
-    setMessages((prevState) => [...messages, response]);
+    // setMessages((prevState) => [...messages, response]);
     setMessageBody("");
   };
 
@@ -50,12 +57,45 @@ const Room = () => {
   };
 
   useEffect(() => {
+
     getMesssages();
+
+    const unsubscribe = client.subscribe(
+      `databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents`,
+      (response) => {
+        console.log("RESPONSe: ", response);
+
+        if (
+          response.events.includes(
+            "databases.*.collections.*.documents.*.create"
+          )
+        ) {
+          console.log("Message created");
+          setMessages((prevState) => [response.payload, ...prevState]);
+        }
+        if (
+          response.events.includes(
+            "databases.*.collections.*.documents.*.delete"
+          )
+        ) {
+          console.log("Message Deleted");
+          setMessages((prevstate) =>
+            prevstate.filter((message) => message.$id !== response.payload.$id)
+          );
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (
     <div className="container">
+       <Header/>
       <div className="room--container">
+      
         <form className="message--form" onSubmit={(e) => createDocument(e)}>
           <div>
             <textarea
@@ -64,30 +104,31 @@ const Room = () => {
                 setMessageBody(e.target.value);
               }}
               value={messageBody}
+              placeholder="Say something..."
             />
           </div>
           <div className="send-btn--wrapper">
-            <button type="submit" value="Send" className="btn btn--secondary">
+            <button type="submit" value="Send" className="btn btn--lg btn--secondary">
               {" "}
               Send{" "}
             </button>
           </div>
+          <br />
           <div>
             {messages.map((message) => {
               return (
                 <div key={message.$id} className="message-wrapper">
                   <div className="message--header">
                     <small className="message-timestamp">
-                      {message.$createdAt}
+                    {new Date(message.$createdAt).toLocaleString()}
                     </small>
 
-                      <Trash2
-                        className="delete--btn"
-                        onClick={() => {
-                          deletedocument(message.$id);
-                        }}
-                      />
-
+                    <Trash2
+                      className="delete--btn"
+                      onClick={() => {
+                        deletedocument(message.$id);
+                      }}
+                    />
                   </div>
                   <div className="message--body">
                     <span>{message.body}</span>
@@ -98,6 +139,7 @@ const Room = () => {
           </div>
         </form>
       </div>
+
     </div>
   );
 };
