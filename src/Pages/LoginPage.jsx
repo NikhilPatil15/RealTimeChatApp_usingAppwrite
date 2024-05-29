@@ -10,7 +10,7 @@ const LoginPage = () => {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
-  });
+  }); 
 
   useEffect(() => {
     if (user) {

@@ -4,15 +4,17 @@ import client, {
   DATABASE_ID,
   databases,
 } from "../appwriteConfig";
-import { ID, Query } from "appwrite";
+import { ID, Permission, Query, Role } from "appwrite";
 import { Trash2 } from "react-feather";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Header } from "../Components";
+import { useAuth } from "../utils/AuthContext";
 
 const Room = () => {
   const [messages, setMessages] = useState([]);
   const [messageBody, setMessageBody] = useState("");
+  const { user } = useAuth();
 
   //fetching all the messages from the database
   const getMesssages = async () => {
@@ -24,17 +26,25 @@ const Room = () => {
   };
 
   //Creating document in the database
-  const createDocument = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     let payload = {
+      user_id: user.$id,
+      username: user.name,
       body: messageBody,
     };
+
+    let permissions = [
+      Permission.write(Role.user(user.$id)) 
+    ];
+
     const response = await databases.createDocument(
       DATABASE_ID,
       COLLECTION_ID,
       ID.unique(),
-      payload
+      payload,
+      permissions
     );
 
     // setMessages((prevState) => [...messages, response]);
@@ -57,8 +67,7 @@ const Room = () => {
   };
 
   useEffect(() => {
-
-    getMesssages();
+   
 
     const unsubscribe = client.subscribe(
       `databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents`,
@@ -86,17 +95,18 @@ const Room = () => {
       }
     );
 
+    getMesssages();
+
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [messageBody]);
 
   return (
     <div className="container">
-       <Header/>
+      <Header />
       <div className="room--container">
-      
-        <form className="message--form" onSubmit={(e) => createDocument(e)}>
+        <form className="message--form" onSubmit={(e) => handleSubmit(e)}>
           <div>
             <textarea
               required
@@ -108,29 +118,42 @@ const Room = () => {
             />
           </div>
           <div className="send-btn--wrapper">
-            <button type="submit" value="Send" className="btn btn--lg btn--secondary">
-              {" "}
-              Send{" "}
+            <button
+              type="submit"
+              value="Send"
+              className="btn btn--lg btn--secondary"
+            >
+              Send
             </button>
           </div>
           <br />
           <div>
             {messages.map((message) => {
               return (
-                <div key={message.$id} className="message-wrapper">
+                <div key={message.$id} className="message--wrapper">
                   <div className="message--header">
-                    <small className="message-timestamp">
-                    {new Date(message.$createdAt).toLocaleString()}
-                    </small>
-
-                    <Trash2
-                      className="delete--btn"
-                      onClick={() => {
-                        deletedocument(message.$id);
-                      }}
-                    />
+                    <p>
+                      {message?.username ? (
+                        <span> {message.username}</span>
+                      ) : (
+                        <span> Anonymous user </span>
+                      )}
+                      <small className="message-timestamp">
+                        {new Date(message.$createdAt).toLocaleString()}
+                      </small>
+                    </p>
+                    {message.$permissions.includes(
+                      `delete(\"user:${user.$id}\")`
+                    ) && (
+                      <Trash2
+                        className="delete--btn"
+                        onClick={() => {
+                          deletedocument(message.$id);
+                        }}
+                      />
+                    )}
                   </div>
-                  <div className="message--body">
+                  <div className={"message--body " + (message.user_id === user.$id ? "message--body--owner": (""))}>
                     <span>{message.body}</span>
                   </div>
                 </div>
@@ -139,7 +162,6 @@ const Room = () => {
           </div>
         </form>
       </div>
-
     </div>
   );
 };

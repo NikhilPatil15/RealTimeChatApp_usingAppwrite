@@ -3,6 +3,7 @@ import ReactLoading from "react-loading";
 import { account } from "../appwriteConfig";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { ID } from "appwrite";
 
 const AuthContext = createContext();
 
@@ -22,35 +23,70 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   };
 
+  const getUserInfo = async () => {
+    let userDetails = await account.get();
+
+    setUser(userDetails);
+  };
+  const createSession = async (email, password) => {
+    try {
+      const response = await account.createEmailPasswordSession(
+        email,
+        password
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
   const handleLogIn = async (e, credentials) => {
     e.preventDefault();
 
     try {
-      const response = await account.createEmailPasswordSession(
-        credentials.email,
-        credentials.password
-      );
-      console.log(response);
-      let accountDetails = await account.get();
-      setUser(accountDetails);
+      await createSession(credentials.email, credentials.password);
+
+      await getUserInfo();
 
       navigate("/");
-      
     } catch (error) {
       toast.error("Invalid cridentials");
     }
-    
   };
 
-  const handleLogOut = async()=>{
-    await account.deleteSession('current')
-    setUser(null)
-  }
+  const handleLogOut = async () => {
+    await account.deleteSession("current");
+    setUser(null);
+  };
+
+  const handleRegister = async (e, credentials) => {
+    e.preventDefault();
+
+    if (credentials.password1 !== credentials.password2) {
+      toast.warning("Passwords don't match !");
+    }
+
+    try {
+      let response = await account.create(
+        ID.unique(),
+        credentials.email,
+        credentials.password1,
+        credentials.name
+      );
+
+      await createSession(credentials.email, credentials.password1);
+
+      await getUserInfo();
+
+      navigate("/");
+    } catch (error) {
+      toast.error("Please enter valid credentials !");
+    }
+  };
 
   const data = {
     user,
     handleLogIn,
     handleLogOut,
+    handleRegister,
   };
 
   useEffect(() => {

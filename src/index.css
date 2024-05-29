@@ -30,6 +30,10 @@ body{
     
 }
 
+span{
+  font-size: 1.15rem;
+}
+
 .container{
   font-size: 1.25rem;
   max-width: 800px;
@@ -149,8 +153,8 @@ input[type="text"], input[type="password"], input[type="email"], textarea{
   display: flex;
   flex-wrap: wrap;
   flex-direction: column;
-  gap: 0.5em;
   margin:1em;
+  gap: 0.5em;
 }
 
 .message--header{
@@ -161,10 +165,13 @@ input[type="text"], input[type="password"], input[type="email"], textarea{
 }
 
 .message--body{
-  padding: 0.5em 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+
   color: var(--textColorSecondary);
   background-color: var(--themeColorMain);
-  padding: 1em;
+  padding: 0.75em;
   border-radius: 20px;
   width:fit-content;
   max-width: 100%;
@@ -172,7 +179,7 @@ input[type="text"], input[type="password"], input[type="email"], textarea{
 }
 
 .message--body--owner{
-  border: 1px solid rgba(219,26,90,1);
+  border: 3px solid rgba(219,26,90,1);
   background-color: var(--secondaryBgColor);
 }
 
